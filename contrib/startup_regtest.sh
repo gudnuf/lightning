@@ -92,6 +92,7 @@ start_nodes() {
 		log-file=/tmp/l$i-$network/log
 		addr=localhost:$socket
 		allow-deprecated-apis=false
+		disable-plugin=clnrest.py
 		EOF
 
 		# If we've configured to use developer, add dev options
