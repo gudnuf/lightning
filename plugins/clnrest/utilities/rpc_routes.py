@@ -59,3 +59,45 @@ class RpcMethodResource(Resource):
 
         except Exception as err:
             return f"Unable to parse request: {err}", 500
+
+def resource_class_factory(rpc_cmd, method):
+    class DynamicRpcMethodResource(Resource):
+        @staticmethod
+        def handle_request(rpc_cmd, rpc_params):
+            try:
+                plugin.log(f"CALLING {rpc_cmd} with {rpc_params}", "debug")
+                return call_rpc_method(plugin, rpc_cmd, rpc_params), 201
+            except RpcError as rpc_err:
+                plugin.log(f"RPC Error: {str(rpc_err.error)}", "debug")
+                return rpc_err.error, rpc_err.error.get("code", 500)
+            
+        @staticmethod
+        def get(*args, **kwargs):
+            # TODO: can anything else be in kwargs other than the dynamic part of the path is <keyset_id>
+            rpc_params = kwargs
+
+            return DynamicRpcMethodResource.handle_request(rpc_cmd, rpc_params)
+
+        @staticmethod
+        def post(*args, **kwargs):
+            rpc_params = request.form.to_dict() if not request.is_json else request.get_json() if len(request.data) != 0 else {}
+
+            return DynamicRpcMethodResource.handle_request(rpc_cmd, rpc_params)
+
+    # Set the methods dynamically based on the 'method' variable
+    DynamicRpcMethodResource.methods = [method]
+    return DynamicRpcMethodResource
+
+
+def add_dynamic_routes(namespace, route_map):
+    for route in route_map:
+        plugin.log(f"clnrest: Loading: {route}")
+        path = route['path']
+        rpc_cmd = route['cmd']
+        method = route['method'].upper()  # Ensure HTTP method is uppercase
+
+        # Use the factory function to create a unique Resource class for each route
+        ResourceClass = resource_class_factory(rpc_cmd, method)
+        
+        # Register the generated Resource class with the namespace
+        namespace.add_resource(ResourceClass, path)
