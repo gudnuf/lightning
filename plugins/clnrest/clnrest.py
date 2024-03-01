@@ -21,7 +21,7 @@ try:
     from flask_socketio import SocketIO, disconnect
     from utilities.generate_certs import generate_certs
     from utilities.shared import set_config, verify_rune
-    from utilities.rpc_routes import rpcns
+    from utilities.rpc_routes import rpcns, add_dynamic_routes
     from utilities.rpc_plugin import plugin
 except ModuleNotFoundError as err:
     # OK, something is not installed?
@@ -110,6 +110,8 @@ def create_app():
     blueprint = Blueprint("api", __name__)
     api = Api(blueprint, version="1.0", title="Core Lightning Rest", description="Core Lightning REST API Swagger", authorizations=authorizations, security=["rune"])
     app.register_blueprint(blueprint)
+    route_map = plugin.route_map
+    add_dynamic_routes(namespace=rpcns, route_map=route_map)
     api.add_namespace(rpcns, path="/v1")
 
 
