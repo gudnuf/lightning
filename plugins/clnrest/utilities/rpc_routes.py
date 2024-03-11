@@ -1,4 +1,4 @@
-from pyln.client import RpcError
+from pyln.client import RpcError, RpcException
 import json5
 from flask import request, make_response
 from flask_restx import Namespace, Resource
@@ -60,29 +60,33 @@ class RpcMethodResource(Resource):
         except Exception as err:
             return f"Unable to parse request: {err}", 500
 
-def resource_class_factory(rpc_cmd, method):
+def resource_class_factory(rpc_cmd, method, overrides=None):
     class DynamicRpcMethodResource(Resource):
-        @staticmethod
-        def handle_request(rpc_cmd, rpc_params):
+        def handle_request(self, rpc_cmd, rpc_params):
             try:
+                if overrides:
+                    for key, value in overrides.items():
+                        if key in rpc_params:
+                            rpc_params[value] = rpc_params.pop(key)
+                            
                 plugin.log(f"CALLING {rpc_cmd} with {rpc_params}", "debug")
-                return call_rpc_method(plugin, rpc_cmd, rpc_params), 201
+
+                return call_rpc_method(plugin, rpc_cmd, rpc_params), 200
             except RpcError as rpc_err:
                 plugin.log(f"RPC Error: {str(rpc_err.error)}", "debug")
                 return rpc_err.error, rpc_err.error.get("code", 500)
-            
-        @staticmethod
-        def get(*args, **kwargs):
+
+        def get(self, *args, **kwargs):
             # TODO: can anything else be in kwargs other than the dynamic part of the path is <keyset_id>
             rpc_params = kwargs
 
-            return DynamicRpcMethodResource.handle_request(rpc_cmd, rpc_params)
+            return self.handle_request(rpc_cmd, rpc_params)
 
         @staticmethod
-        def post(*args, **kwargs):
+        def post(self, *args, **kwargs):
             rpc_params = request.form.to_dict() if not request.is_json else request.get_json() if len(request.data) != 0 else {}
 
-            return DynamicRpcMethodResource.handle_request(rpc_cmd, rpc_params)
+            return self.handle_request(rpc_cmd, rpc_params)
 
     # Set the methods dynamically based on the 'method' variable
     DynamicRpcMethodResource.methods = [method]
@@ -95,9 +99,10 @@ def add_dynamic_routes(namespace, route_map):
         path = route['path']
         rpc_cmd = route['cmd']
         method = route['method'].upper()  # Ensure HTTP method is uppercase
+        overrides = route.get('param_overrides', None)
 
         # Use the factory function to create a unique Resource class for each route
-        ResourceClass = resource_class_factory(rpc_cmd, method)
-        
+        ResourceClass = resource_class_factory(rpc_cmd, method, overrides)
+
         # Register the generated Resource class with the namespace
         namespace.add_resource(ResourceClass, path)
