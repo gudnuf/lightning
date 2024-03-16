@@ -40,7 +40,8 @@ class RpcMethodResource(Resource):
         try:
             rune = request.headers.get("rune", None)
             rpc_method = request.view_args.get("rpc_method", None)
-            rpc_params = request.form.to_dict() if not request.is_json else request.get_json() if len(request.data) != 0 else {}
+            rpc_params = request.form.to_dict() if not request.is_json else request.get_json(
+            ) if len(request.data) != 0 else {}
 
             try:
                 verify_rune(plugin, rune, rpc_method, rpc_params)
@@ -60,15 +61,17 @@ class RpcMethodResource(Resource):
         except Exception as err:
             return f"Unable to parse request: {err}", 500
 
+
 def resource_class_factory(rpc_cmd, method, overrides=None):
     class DynamicRpcMethodResource(Resource):
-        def handle_request(self, rpc_cmd, rpc_params):
+        @staticmethod
+        def handle_request(rpc_cmd, rpc_params):
             try:
                 if overrides:
                     for key, value in overrides.items():
                         if key in rpc_params:
                             rpc_params[value] = rpc_params.pop(key)
-                            
+
                 plugin.log(f"CALLING {rpc_cmd} with {rpc_params}", "debug")
 
                 return call_rpc_method(plugin, rpc_cmd, rpc_params), 200
@@ -80,13 +83,13 @@ def resource_class_factory(rpc_cmd, method, overrides=None):
             # TODO: can anything else be in kwargs other than the dynamic part of the path is <keyset_id>
             rpc_params = kwargs
 
-            return self.handle_request(rpc_cmd, rpc_params)
+            return DynamicRpcMethodResource.handle_request(rpc_cmd, rpc_params)
 
-        @staticmethod
         def post(self, *args, **kwargs):
-            rpc_params = request.form.to_dict() if not request.is_json else request.get_json() if len(request.data) != 0 else {}
+            rpc_params = request.form.to_dict() if not request.is_json else request.get_json(
+            ) if len(request.data) != 0 else {}
 
-            return self.handle_request(rpc_cmd, rpc_params)
+            return DynamicRpcMethodResource.handle_request(rpc_cmd, rpc_params)
 
     # Set the methods dynamically based on the 'method' variable
     DynamicRpcMethodResource.methods = [method]
