@@ -36,6 +36,8 @@ On success, an object is returned, containing:
   - **category** (string): the category for this command (useful for grouping)
   - **description** (string): a one-line description of the purpose of this command
   - **verbose** (string): a full description of this command (including whether it's deprecated)
+  - **http\_path** (string, optional): the path to the HTTP endpoint for this command
+  - **http\_method** (string, optional): the HTTP method for this command
 
 [comment]: # (GENERATE-FROM-SCHEMA-END)
 
@@ -69,4 +71,4 @@ RESOURCES
 
 Main web site: <https://github.com/ElementsProject/lightning>
 
-[comment]: # ( SHA256STAMP:2215b33f35ca1e21be55a68c24708a44d5e6525e9d681a92e3f43ffc0114bff4)
+[comment]: # ( SHA256STAMP:b4f6accc4da5798196de70fc9a4921870d7541124dd3b85115a5a1b6c5c5783f)

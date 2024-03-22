@@ -47,6 +47,24 @@ struct command {
 	struct json_filter *filter;
 };
 
+struct param_override_pair {
+	/* 0: incoming request param to override
+		 1: plugin param to map to
+	*/
+	const char *param[2]; 
+};
+
+// /** Data needed for http requests to be mapped to plugin calls*/
+// struct http_data {
+// 	/* The path of the REST call */
+// 	const char *path;
+// 	/* HTTP method. "GET", "POST", etc. */
+// 	const char *method;
+// 	/* In case incoming requests do not match parameter names used in plugin */
+// 	// const char *overrides [][2];
+// 	size_t num_overrides;
+// };
+
 /**
  * Dummy structure to make sure you call one of
  * command_success / command_failed / command_still_pending.
@@ -64,6 +82,13 @@ struct json_command {
 	const char *verbose;
 	bool dev_only;
 	const char *depr_start, *depr_end;
+	const char *http_path;
+	/* HTTP method. "GET", "POST", etc. */
+	const char *http_method;
+	/* In case incoming requests do not match parameter names used in plugin 
+	*/
+	// struct param_override_pair *http_overrides;
+	// size_t num_http_overrides;
 };
 
 struct jsonrpc_notification {

@@ -3,7 +3,7 @@ from binascii import hexlify
 from collections import OrderedDict
 from enum import Enum
 from threading import RLock
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TypedDict
 
 import inspect
 import io
@@ -48,7 +48,8 @@ class Method(object):
     def __init__(self, name: str, func: Callable[..., JSONType],
                  mtype: MethodType = MethodType.RPCMETHOD,
                  category: str = None, desc: str = None,
-                 long_desc: str = None, deprecated: Union[bool, List[str]] = None):
+                 long_desc: str = None, deprecated: Union[bool, List[str]] = None, 
+                 http_path=None, http_method=None):
         self.name = name
         self.func = func
         self.mtype = mtype
@@ -59,6 +60,8 @@ class Method(object):
         self.deprecated = deprecated
         self.before: List[str] = []
         self.after: List[str] = []
+        self.http_path = http_path
+        self.http_method = http_method
 
 
 class RpcException(Exception):
@@ -182,6 +185,9 @@ class Request(dict):
 
         self._notify("progress", d)
 
+class HTTPData(TypedDict):
+    path: str
+    method: str
 
 # If a hook call fails we need to coerce it into something the main daemon can
 # handle. Returning an error is not an option since we explicitly do not allow
@@ -297,7 +303,9 @@ class Plugin(object):
                    category: Optional[str] = None,
                    desc: Optional[str] = None,
                    long_desc: Optional[str] = None,
-                   deprecated: Union[bool, List[str]] = None) -> None:
+                   deprecated: Union[bool, List[str]] = None,
+                   http_path: Optional[str] = None,
+                   http_method: Optional[str] = None) -> None:
         """Add a plugin method to the dispatch table.
 
         The function will be expected at call time (see `_dispatch`)
@@ -339,7 +347,7 @@ class Plugin(object):
         # Register the function with the name
         method = Method(
             name, func, MethodType.RPCMETHOD, category, desc, long_desc,
-            deprecated
+            deprecated, http_path, http_method
         )
 
         method.background = background
@@ -449,7 +457,9 @@ class Plugin(object):
     def async_method(self, method_name: str, category: Optional[str] = None,
                      desc: Optional[str] = None,
                      long_desc: Optional[str] = None,
-                     deprecated: Union[bool, List[str]] = None) -> NoneDecoratorType:
+                     deprecated: Union[bool, List[str]] = None,
+                     http_path: Optional[str] = None,
+                     http_method: Optional[str] = None) -> NoneDecoratorType:                    
         """Decorator to add an async plugin method to the dispatch table.
 
         Internally uses add_method.
@@ -457,14 +467,16 @@ class Plugin(object):
         def decorator(f: Callable[..., None]) -> Callable[..., None]:
             self.add_method(method_name, f, background=True, category=category,
                             desc=desc, long_desc=long_desc,
-                            deprecated=deprecated)
+                            deprecated=deprecated, http_path=http_path, http_method=http_method)
             return f
         return decorator
 
     def method(self, method_name: str, category: Optional[str] = None,
                desc: Optional[str] = None,
                long_desc: Optional[str] = None,
-               deprecated: Union[bool, List[str]] = None) -> JsonDecoratorType:
+               deprecated: Union[bool, List[str]] = None,
+               http_path: Optional[str] = None,
+               http_method: Optional[str] = None) -> JsonDecoratorType:
         """Decorator to add a plugin method to the dispatch table.
 
         Internally uses add_method.
@@ -476,7 +488,9 @@ class Plugin(object):
                             category=category,
                             desc=desc,
                             long_desc=long_desc,
-                            deprecated=deprecated)
+                            deprecated=deprecated,
+                            http_path=http_path,
+                            http_method=http_method)
             return f
         return decorator
 
@@ -919,6 +933,12 @@ class Plugin(object):
             if method.long_desc:
                 m = methods[len(methods) - 1]
                 m["long_description"] = method.long_desc
+            if method.http_path:
+                m = methods[len(methods) - 1]
+                m["http_path"] = method.http_path
+            if method.http_method:
+                m = methods[len(methods) - 1]
+                m["http_method"] = method.http_method
 
         manifest = {
             'options': list({k: v for k, v in d.items() if v is not None} for d in self.options.values()),
@@ -939,6 +959,8 @@ class Plugin(object):
 
         if self.custom_msgs is not None:
             manifest['custommessages'] = self.custom_msgs
+
+        self.log("Manifest: {}".format(manifest));
 
         return manifest
 

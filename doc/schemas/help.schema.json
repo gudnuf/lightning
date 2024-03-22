@@ -2,21 +2,14 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "help"
-  ],
+  "required": ["help"],
   "properties": {
     "help": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": [
-          "command",
-          "category",
-          "description",
-          "verbose"
-        ],
+        "required": ["command", "category", "description", "verbose"],
         "properties": {
           "command": {
             "type": "string",
@@ -33,6 +26,14 @@
           "verbose": {
             "type": "string",
             "description": "a full description of this command (including whether it's deprecated)"
+          },
+          "http_path": {
+            "type": "string",
+            "description": "the path to the HTTP endpoint for this command"
+          },
+          "http_method": {
+            "type": "string",
+            "description": "the HTTP method for this command"
           }
         }
       }

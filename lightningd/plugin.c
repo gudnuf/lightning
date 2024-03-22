@@ -1348,7 +1348,7 @@ static const char *plugin_rpcmethod_add(struct plugin *plugin,
 					const jsmntok_t *meth)
 {
 	const jsmntok_t *nametok, *categorytok, *desctok, *longdesctok,
-		*usagetok, *deprtok;
+		*usagetok, *deprtok, *httpathtok, *httpmethodtok;
 	struct json_command *cmd;
 	const char *usage, *err;
 
@@ -1358,6 +1358,9 @@ static const char *plugin_rpcmethod_add(struct plugin *plugin,
 	longdesctok = json_get_member(buffer, meth, "long_description");
 	usagetok = json_get_member(buffer, meth, "usage");
 	deprtok = json_get_member(buffer, meth, "deprecated");
+	httpathtok = json_get_member(buffer, meth, "http_path");
+	httpmethodtok = json_get_member(buffer, meth, "http_method");
+	// httpoverridestok = json_get_member(buffer, meth, "http_overrides");
 
 	if (!nametok || nametok->type != JSMN_STRING) {
 		return tal_fmt(plugin,
@@ -1384,6 +1387,18 @@ static const char *plugin_rpcmethod_add(struct plugin *plugin,
 			    meth->end - meth->start, buffer + meth->start);
 	}
 
+	bool all_http_fields_present_and_correct = 
+		(httpathtok && httpathtok->type == JSMN_STRING) &&
+		(httpmethodtok && httpmethodtok->type == JSMN_STRING);
+		// (httpoverridestok && httpoverridestok->type == JSMN_OBJECT);
+
+	bool none_http_fields_present = !httpathtok && !httpmethodtok;
+	
+	if (!all_http_fields_present_and_correct && !none_http_fields_present) {
+		return tal_fmt(plugin,
+			    "All or none of \"http_method\" (string), \"http_path\" (string), \"http_overrides\" (object) must be present and correctly typed.");
+	}
+
 	cmd = notleak(tal(plugin, struct json_command));
 	cmd->name = json_strdup(cmd, buffer, nametok);
 	if (categorytok)
@@ -1400,7 +1415,14 @@ static const char *plugin_rpcmethod_add(struct plugin *plugin,
 	else
 		return tal_fmt(plugin,
 			    "\"usage\" not provided by plugin");
-
+	if (httpathtok)
+		cmd->http_path = json_strdup(cmd, buffer, httpathtok);
+	else
+		cmd->http_path = NULL;
+	if (httpmethodtok)
+		cmd->http_method = json_strdup(cmd, buffer, httpmethodtok);
+	else
+		cmd->http_method = NULL;
 	err = json_parse_deprecated(cmd, buffer, deprtok, &cmd->depr_start, &cmd->depr_end);
 	if (err)
 		return tal_steal(plugin, err);

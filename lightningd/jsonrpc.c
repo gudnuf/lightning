@@ -493,6 +493,14 @@ static void json_add_help_command(struct command *cmd,
 		json_add_escaped_string(response, "verbose", take(esc));
 	}
 
+	if (json_command->http_path && json_command->http_method) {
+		json_add_string(response, "http_path", json_command->http_path);
+		json_add_string(response, "http_method", json_command->http_method);
+	} else {
+		json_add_string(response, "http_path", "none");
+		json_add_string(response, "http_method", "none");
+	}
+
 	json_object_end(response);
 
 }
