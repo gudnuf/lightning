@@ -1385,6 +1385,60 @@ static struct command_result *plugin_rpcmethod_dispatch(struct command *cmd,
 	return command_still_pending(cmd);
 }
 
+static const char *plugin_rpcmethod_clnrest_add(struct plugin *plugin, 
+                                                const char *buffer, 
+                                                const jsmntok_t *tok, 
+                                                struct json_command *cmd) 
+{
+	const jsmntok_t *clnresttok = json_get_member(buffer, tok, "clnrest");
+
+	if (!clnresttok) {
+			cmd->clnrest = NULL;
+			return NULL;
+	}
+
+	struct clnrest *clnrest = tal(cmd, struct clnrest);
+
+	// TODO: check each field for validity
+	// TODO: make sure no other plugin has the same path
+
+	const jsmntok_t *pathtok = json_get_member(buffer, clnresttok, "path");
+	const jsmntok_t *methodtok = json_get_member(buffer, clnresttok, "method");
+	const jsmntok_t *contenttypetok = json_get_member(buffer, clnresttok, "content_type");
+	const jsmntok_t *runetok = json_get_member(buffer, clnresttok, "rune");
+	const jsmntok_t *pluginnametok = json_get_member(buffer, tok, "name");
+
+	if (pathtok) {
+		clnrest->path = json_strdup(clnrest, buffer, pathtok);
+	} else {
+		clnrest->path = json_strdup(clnrest, buffer, pluginnametok);
+	}
+
+	if (methodtok) {
+		clnrest->method = json_strdup(clnrest, buffer, methodtok);
+	} else {
+		clnrest->method = "GET";
+	}
+
+	if (contenttypetok) {
+		clnrest->content_type = json_strdup(clnrest, buffer, contenttypetok);
+	} else {
+		clnrest->content_type = "application/json";
+	}
+
+	if (runetok) {
+		bool rune_value;
+		json_to_bool(buffer, runetok, &rune_value);
+		clnrest->rune = tal_dup(clnrest, bool, &rune_value);
+	} else {
+		bool default_rune_value = true;
+		clnrest->rune = tal_dup(clnrest, bool, &default_rune_value);
+	}
+
+	cmd->clnrest = clnrest;
+	return NULL;
+}
+
 static const char *plugin_rpcmethod_add(struct plugin *plugin,
 					const char *buffer,
 					const jsmntok_t *meth)
@@ -1442,7 +1496,7 @@ static const char *plugin_rpcmethod_add(struct plugin *plugin,
 	else
 		return tal_fmt(plugin,
 			    "\"usage\" not provided by plugin");
-
+	plugin_rpcmethod_clnrest_add(plugin, buffer, meth, cmd);
 	err = json_parse_deprecated(cmd, buffer, deprtok, &cmd->depr_start, &cmd->depr_end);
 	if (err)
 		return tal_steal(plugin, err);

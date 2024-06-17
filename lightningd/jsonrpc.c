@@ -498,6 +498,22 @@ static void json_add_help_command(struct command *cmd,
 		json_add_escaped_string(response, "verbose", take(esc));
 	}
 
+	if (json_command->clnrest) {
+			json_object_start(response, "clnrest");
+			if (json_command->clnrest->method) {
+					json_add_string(response, "method", json_command->clnrest->method);
+			}
+			if (json_command->clnrest->path) {
+					json_add_string(response, "path", json_command->clnrest->path);
+			}
+			if (json_command->clnrest->content_type) {
+					json_add_string(response, "content_type", json_command->clnrest->content_type);
+			}
+			if (json_command->clnrest->rune) {
+					json_add_bool(response, "rune", *json_command->clnrest->rune);
+			}
+			json_object_end(response);
+	}
 	json_object_end(response);
 
 }

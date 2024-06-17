@@ -2626,6 +2626,15 @@ def stop2py(m):
     })
 
 
+def help_help_clnrest2py(m):
+    return remove_default({
+        "content_type": m.content_type,  # PrimitiveField in generate_composite
+        "method": m.method,  # PrimitiveField in generate_composite
+        "path": m.path,  # PrimitiveField in generate_composite
+        "rune": m.rune,  # PrimitiveField in generate_composite
+    })
+
+
 def help_help2py(m):
     return remove_default({
         "category": m.category,  # PrimitiveField in generate_composite

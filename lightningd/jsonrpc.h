@@ -48,6 +48,16 @@ struct command {
 };
 
 /**
+ * Provides data about REST calls to be mapped to plugin calls
+*/
+struct clnrest {
+	const char *path;
+	const char *method;
+	const char *content_type;
+	const bool *rune;
+};
+
+/**
  * Dummy structure to make sure you call one of
  * command_success / command_failed / command_still_pending.
  */
@@ -69,6 +79,7 @@ struct json_command {
 					const char *buffer,
 					const jsmntok_t *obj,
 					const jsmntok_t *params);
+	struct clnrest *clnrest;
 };
 
 struct jsonrpc_notification {
