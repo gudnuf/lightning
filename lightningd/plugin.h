@@ -65,6 +65,7 @@ struct plugin {
 	struct list_head plugin_opts;
 
 	const char **methods;
+	size_t method_count;
 
 	/* Timer to add a timeout to some plugin RPC calls. Used to
 	 * guarantee that `getmanifest` doesn't block indefinitely. */

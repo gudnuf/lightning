@@ -305,6 +305,8 @@ static void destroy_plugin(struct plugin *p)
 
 	if (tal_count(p->custom_msgs))
 		tell_connectd_custommsgs(p->plugins);
+
+	notify_plugin_stopped(p->plugins->ld, p); 
 }
 
 static u32 file_checksum(struct lightningd *ld, const char *path)
@@ -1514,6 +1516,7 @@ static const char *plugin_rpcmethod_add(struct plugin *plugin,
 		    cmd->name, p->cmd);
 	}
 	tal_arr_expand(&plugin->methods, cmd->name);
+	plugin->method_count++;
 	return NULL;
 }
 
@@ -2201,6 +2204,9 @@ static void plugin_config_cb(const char *buffer,
 
 	plugin->plugin_state = INIT_COMPLETE;
 	plugin->timeout_timer = tal_free(plugin->timeout_timer);
+
+	notify_plugin_started(plugin->plugins->ld, plugin);
+
 	if (plugin->start_cmd) {
 		plugin_cmd_succeeded(plugin->start_cmd, plugin);
 		plugin->start_cmd = NULL;
